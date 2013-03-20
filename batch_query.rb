@@ -13,8 +13,7 @@ class BatchQuery
     end
     @batch_size = batch_size
     @last_id = 0
-    @conn = conn || ActiveRecord::Base.connection rescue nil
-    raise ArgumentError.new("I need a connection handler!") if @conn.nil?
+    @conn = conn || ActiveRecord::Base.connection
   end
 
   def query_string
@@ -35,10 +34,14 @@ class BatchQuery
   end
   
   def first
-    tmp = @last_id
-    reset
-    r = self.next
-    @last_id = tmp
+    if @last_id > 0
+      tmp = @last_id
+      reset
+      r = self.next
+      @last_id = tmp
+    else
+      r = self.next
+    end
     r
   end
 
