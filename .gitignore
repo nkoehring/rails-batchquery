@@ -16,3 +16,8 @@ tmp
 .yardoc
 _yardoc
 doc/
+
+# VIM stuff
+Session.vim
+.*.swp
+.*.swo
