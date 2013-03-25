@@ -1,4 +1,6 @@
+# encoding: utf-8
 class BatchQuery
+  attr_reader :columns
   include Enumerable
 
   def initialize(table, fields, batch_size=10, conn=nil)
@@ -13,15 +15,20 @@ class BatchQuery
     end
     @batch_size = batch_size
     @last_id = 0
-    @conn = conn || ActiveRecord::Base.connection
+
+    @conn = conn || ActiveRecord::Base.connection rescue nil
+    raise AttributeError.new("A connection adapter is obligatory!") if @conn.nil?
+
+    @columns = @conn.columns(@table).collect{|c| c.name.to_sym}
+    @idx = @columns.index(:id)
   end
 
   def query_string
     op = @last_id>0 ? ">" : ">="
-    "select #{@fields_str} "       +
-    "from #{@table} "             +
+    "select #{@fields_str} "        +
+    "from #{@table} "               +
     "where (id #{op} #{@last_id}) " +
-    "order by id asc "            +
+    "order by id asc "              +
     "limit #{@batch_size}"
   end
 
@@ -51,9 +58,8 @@ class BatchQuery
 
   def next
     result = @conn.exec_query(query_string)
-    @columns ||= result.columns.collect(&:to_sym)
     rows = result.rows
-    @last_id = rows.last[@columns.index(:id)] if rows.last
+    @last_id = rows.last[@idx] if rows.last
     rows
   end
 
